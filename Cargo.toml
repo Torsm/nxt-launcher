@@ -1,0 +1,11 @@
+[package]
+name = "nxt-launcher"
+version = "0.1.0"
+authors = ["Torben"]
+edition = "2018"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["blocking"] }
+lzma-rs = "0.2.0"
+crc = "2.0.0-rc.1"
+dirs = "3.0.2"
