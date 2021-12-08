@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::process::{Child, Command};
 
 use crate::environment::{fetch_client_file, get_client_file_path};
 use crate::jav_config::{BinaryType, JavConfig};
@@ -25,10 +25,13 @@ fn main() {
         }
     }
 
-    launch(&jav_config);
+    if let Err(err) = launch(&jav_config) {
+        eprintln!("Error while launching process: {}", err);
+        return;
+    }
 }
 
-fn launch(jav_config: &JavConfig) {
+fn launch(jav_config: &JavConfig) -> Result<Child, std::io::Error> {
     let binary_name = jav_config.properties.get("binary_name").unwrap();
     let mut cmd = Command::new(get_client_file_path(binary_name));
 
@@ -37,5 +40,5 @@ fn launch(jav_config: &JavConfig) {
         cmd.arg(value);
     }
 
-    cmd.spawn();
+    cmd.spawn()
 }

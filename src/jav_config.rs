@@ -1,7 +1,6 @@
-use std::any::TypeId;
 use std::collections::HashMap;
 use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::Debug;
 
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryType {

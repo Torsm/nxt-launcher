@@ -18,7 +18,7 @@ pub fn fetch_client_file(client_file: &ClientFile, base_url: &str) -> Result<(),
         println!("Downloading missing file: {}", &client_file.name);
     }
 
-    std::fs::create_dir_all(&path.parent().unwrap());
+    std::fs::create_dir_all(&path.parent().unwrap())?;
     let url = format!("{}&fileName={}&crc={}", base_url, &client_file.name, client_file.crc);
     download_and_decompress(&url, &path)
 }
