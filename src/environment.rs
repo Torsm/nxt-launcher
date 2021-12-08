@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use crate::jav_config::ClientFile;
 
 pub fn fetch_client_file(client_file: &ClientFile, base_url: &str) -> Result<(), Box<dyn Error>> {
-    let path = get_client_file_path(&client_file.name).unwrap();
+    let path = get_client_file_path(&client_file.name);
     if path.exists() {
         let file_crc = get_crc(&path)?;
         if file_crc.to_string() == client_file.crc {
@@ -23,23 +23,23 @@ pub fn fetch_client_file(client_file: &ClientFile, base_url: &str) -> Result<(),
     download_and_decompress(&url, &path)
 }
 
-pub fn get_client_file_path(name: &str) -> Option<PathBuf> {
-    let mut home = dirs::home_dir()?;
+pub fn get_client_file_path(name: &str) -> PathBuf {
+    let mut home = dirs::home_dir().unwrap();
     home.push("NXTLauncher");
     home.push(name);
-    Option::Some(home)
+    home
 }
 
 fn download_and_decompress(url: &str, path: &Path) -> Result<(), Box<dyn Error>> {
     let mut file = File::create(path)?;
-    let mut response = reqwest::blocking::get(url)?;
+    let mut response = reqwest::blocking::get(url)?.error_for_status()?;
     let mut reader = BufReader::new(&mut response);
 
     lzma_rs::lzma_decompress(&mut reader, &mut file)?;
     Result::Ok(())
 }
 
-fn get_crc(path: &Path) -> std::io::Result<u32> {
+fn get_crc(path: &Path) -> Result<u32, Box<dyn Error>> {
     let file = File::open(path)?;
     let mut reader = std::io::BufReader::new(file);
     let crc = crc::Crc::<u32>::new(&crc::CRC_32_ISO_HDLC);

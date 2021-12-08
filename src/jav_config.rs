@@ -1,8 +1,11 @@
+use std::any::TypeId;
 use std::collections::HashMap;
 use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Debug, Clone, Copy)]
 pub enum BinaryType {
+    None = 0,
     Windows32 = 1,
     Windows64 = 2,
     Linux = 3,
@@ -32,32 +35,42 @@ impl JavConfig {
         let codebase = self.properties.get("codebase")?;
         Option::Some(format!("{}client?binaryType={}", codebase, self.binary_type as u8))
     }
+}
 
-    fn parse(&mut self, jav_config_text: &String) {
-        for line in jav_config_text.lines() {
-            if line.starts_with("msg=") {
-                let (key, value) = split_key_value(line.trim_start_matches("msg="));
-                self.messages.insert(key, value);
-            } else if line.starts_with("param=") {
-                let (key, value) = split_key_value(line.trim_start_matches("param="));
-                self.params.insert(key, value);
-            } else {
-                let (key, value) = split_key_value(line);
-                self.properties.insert(key, value);
-            }
-        }
+fn parse(raw: &str) -> JavConfig {
+    let mut jav_config = JavConfig {
+        binary_type: BinaryType::None,
+        properties: HashMap::new(),
+        messages: HashMap::new(),
+        params: HashMap::new(),
+        files: Vec::new(),
+    };
 
-        let binary_count = self.properties.get("binary_count")
-            .map_or("0", |s| s.as_str())
-            .parse::<i32>()
-            .unwrap_or(0);
-        for i in 0..binary_count {
-            let name = self.properties.remove(&format!("download_name_{}", i)).unwrap();
-            let crc = self.properties.remove(&format!("download_crc_{}", i)).unwrap();
-            let hash = self.properties.remove(&format!("download_hash_{}", i)).unwrap();
-            self.files.push(ClientFile { name, crc, hash });
+    for line in raw.lines() {
+        if line.starts_with("msg=") {
+            let (key, value) = split_key_value(line.trim_start_matches("msg="));
+            jav_config.messages.insert(key, value);
+        } else if line.starts_with("param=") {
+            let (key, value) = split_key_value(line.trim_start_matches("param="));
+            jav_config.params.insert(key, value);
+        } else {
+            let (key, value) = split_key_value(line);
+            jav_config.properties.insert(key, value);
         }
     }
+
+    let binary_count = jav_config.properties.get("binary_count")
+        .map_or("0", |s| s.as_str())
+        .parse::<i32>()
+        .unwrap_or(0);
+    for i in 0..binary_count {
+        let name = jav_config.properties.remove(format!("download_name_{}", i).as_str()).unwrap();
+        let crc = jav_config.properties.remove(format!("download_crc_{}", i).as_str()).unwrap();
+        let hash = jav_config.properties.remove(format!("download_hash_{}", i).as_str()).unwrap();
+        jav_config.files.push(ClientFile { name, crc, hash });
+    }
+
+    jav_config
 }
 
 pub fn load(binary_type: BinaryType) -> Result<JavConfig, Box<dyn Error>> {
@@ -65,14 +78,8 @@ pub fn load(binary_type: BinaryType) -> Result<JavConfig, Box<dyn Error>> {
     let response = reqwest::blocking::get(url)?.error_for_status()?;
 
     let jav_config_text = response.text()?;
-    let mut jav_config = JavConfig {
-        binary_type,
-        properties: HashMap::new(),
-        messages: HashMap::new(),
-        params: HashMap::new(),
-        files: Vec::new(),
-    };
-    jav_config.parse(&jav_config_text);
+    let mut jav_config = parse(jav_config_text.as_str());
+    jav_config.binary_type = binary_type;
     Result::Ok(jav_config)
 }
 

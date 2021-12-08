@@ -1,4 +1,3 @@
-use std::iter::once;
 use std::process::Command;
 
 use crate::environment::{fetch_client_file, get_client_file_path};
@@ -31,7 +30,7 @@ fn main() {
 
 fn launch(jav_config: &JavConfig) {
     let binary_name = jav_config.properties.get("binary_name").unwrap();
-    let mut cmd = Command::new(get_client_file_path(binary_name).unwrap());
+    let mut cmd = Command::new(get_client_file_path(binary_name));
 
     for (key, value) in jav_config.params.iter() {
         cmd.arg(key);
